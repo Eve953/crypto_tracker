@@ -1,0 +1,30 @@
+/* style.css */
+
+/* Generic styling for all metrics */
+[data-testid="stMetric"] {
+    border-radius: 20px !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+    border-left: 5px solid #6D597A !important;
+    padding: 15px !important;
+}
+
+/* Individual Color Targeting */
+/* 1st Column */
+div[data-testid="stHorizontalBlock"] > div:nth-child(1) [data-testid="stMetric"] {
+    background-color: #E6E1F9 !important;
+}
+
+/* 2nd Column */
+div[data-testid="stHorizontalBlock"] > div:nth-child(2) [data-testid="stMetric"] {
+    background-color: #FFE5D9 !important;
+}
+
+/* 3rd Column */
+div[data-testid="stHorizontalBlock"] > div:nth-child(3) [data-testid="stMetric"] {
+    background-color: #D8F3DC !important;
+}
+
+/* 4th Column */
+div[data-testid="stHorizontalBlock"] > div:nth-child(4) [data-testid="stMetric"] {
+    background-color: #CAF0F8 !important;
+}

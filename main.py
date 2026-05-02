@@ -1,106 +1,75 @@
 import streamlit as st
-import yfinance as yf
-import plotly.express as px
 import pandas as pd
-from streamlit_extras.metric_cards import style_metric_cards
+import plotly.express as px
 
-st.title('Analysis')
-st.divider()
+st.set_page_config(layout="wide")
 
-col = st.columns([4.45,0.3, 1, 0.2,2]) 
+def local_css(file_name):
+    with open(file_name) as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-# intialize session state for user input
-if 'portfolio' not in st.session_state:
-    st.session_state['portfolio'] = []
+local_css("styles.css")
 
-if 'pe_score' not in st.session_state:
-    st.session_state['pe_score'] = {}
+st.title("Crypto Analysis Dashboard")
 
-if 'user_input' not in st.session_state:
-    st.session_state['user_input'] = set()
+# The inputs
+with st.expander("➕ Add New Asset to Portfolio"):
+    input_col1, input_col2, input_col3 = st.columns([2, 2, 1])
+    with input_col1:
+        coin = st.selectbox("Ticker", ["BTC", "ETH", "SOL", "ADA"])
+    with input_col2:
+        amount = st.number_input("Amount ($)", min_value=0.0)
+    with input_col3:
+        st.write(" ") 
+        add_btn = st.button("Update Dashboard")
 
-data = []
-   
+# The Metric Grid
+# horizontal block for divs
+m1, m2, m3, m4 = st.columns(4)
 
-# user input in sidebar
-with st.sidebar:
-    st.title('Portfolio Information 💼')
-    st.write('')
-    st.divider()
-    ticker = st.selectbox('Select a Stock Ticker:', ('AAPL', 'MSFT', 'NVDA', 'GOOG', 'META', 'V', 'WMT', 'ORCL', 'IBM'))
-   
-
-    st.write('')
-    amount = st.number_input("Amount to invest in the stock")
-
-    if st.button('Add to Portfolio'):
-        if ticker == '' or amount <= 0:
-            st.error("Please fill in empty fields", icon = '❌')        # makes sure user fills in all fields
-
-        if ticker not in st.session_state['user_input']:
-            st.session_state['user_input'].add(ticker)
-
-        for i in st.session_state['user_input']:
-            t = yf.Ticker(i)
-            d_yield = t.info['dividendYield']
-            pe_score = t.info.get('forwardPE', None)
-
-           # this is collecting the data for the dataframe for my scatterplot
-            data.append({
-
-                "PE_score": pe_score,
-                "Dividend_Yield": d_yield
-                 })
-            
-
-        
-
-            with col[4]:
-
-                st.metric(label="DivYield for " + i, value=d_yield)
-            style_metric_cards(background_color = "#292D34")
-
-            st.markdown("""
-            <style>
-            [data-testid="metric-container"] {
-                width: 100% !important;       
-            }
-            </style>
-        """, unsafe_allow_html=True)
+with m1:
+    st.metric("Fear & Greed", "42", "Fear")
+with m2:
+    st.metric("Risk Level", "Low", "Stable")
+with m3:
+    st.metric("Top Performer", "SOL", "+12%")
+with m4:
+    st.metric("24h Volume", "$2.4B", "-0.5%")
 
 
+# THE GRID FOR CHARTS
+# Row 2: Large Analysis Cards
 
-        #st.write(st.session_state['user_input'])
+# Pastels for metrics 
+pastel_colors = ['#E6E1F9', '#FFE5D9', '#D8F3DC', '#CAF0F8', '#6D597A']
 
-        st.session_state['portfolio'].append({"ticker": ticker, "amount": amount})  # session state for portfolio percent breakdown
-        df1 = pd.DataFrame(st.session_state['portfolio'])
-        fig1 = px.pie(df1, 
-                      values='amount', 
-                      names='ticker', 
-                      title = 'Portfolio Breakdown',
-        )
-        col[0].plotly_chart(fig1)
+col1, col2= st.columns(2)
 
-        ratio = yf.Ticker(ticker)
-        st.session_state['pe_score'][ticker] = {"pe score": ratio.info['forwardPE']}            # keeps track of the pe score of the stocks the user selects
-        df2 = pd.DataFrame.from_dict(st.session_state['pe_score'], orient='index')
+with col1:
+    st.subheader("Market Trend")
+    df = pd.DataFrame({'x': range(10), 'y': [5, 4, 6, 7, 6, 8, 9, 7, 8, 10]})
+    fig = px.line(df, x='x', y='y', template="plotly_white")
+    # Using the dark muted purple so we can read it
+    fig.update_traces(line_color='#6D597A', line_width=3)
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)', 
+        plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=20, b=20, l=20, r=20)
+    )
+    st.plotly_chart(fig, width='stretch')
 
-        df2.index.name = 'ticker'           
-        df2 = df2.reset_index()             # makes sure the index is ticker for x axis
-        fig2 = px.bar(df2,                  # pe score chart criteria
-                      x='ticker', 
-                      y="pe score", 
-                      color="ticker", 
-                      text_auto=True)
-
-        with col[0]:
-            st.plotly_chart(fig2)
-
-    # scatterplot dataframe and plot
-    df3 = pd.DataFrame(data)
-    if not df3.empty:
-        fig3 = px.scatter(df3, x = "PE_score", y = 'Dividend_Yield')
-
-        with col[0]:
-            st.plotly_chart(fig3)
-
+with col2:
+    st.subheader("Allocation")
+    fig_pie = px.pie(
+        values=[40, 30, 30], 
+        names=['BTC', 'ETH', 'Other'], 
+        hole=0.7,
+        color_discrete_sequence=pastel_colors # forces the chart to be pastel instead of the bright blue and red default
+    )
+    fig_pie.update_layout(
+        showlegend=True,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
+        margin=dict(t=0, b=0, l=0, r=0)
+    )
+    st.plotly_chart(fig_pie, width='stretch')
