@@ -34,12 +34,6 @@ def local_css(file_name):
 
 local_css("styles.css")
 
-def get_data():
-    ids = "bitcoin,tether,ethereum,solana, usdc"
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true"
-    
-    response = requests.get(url)
-    return response.json()
 
 def get_fear_n_greed():
     url = "https://api.alternative.me/fng/"
@@ -62,16 +56,6 @@ def extract_btc(data):
     change = btc_data.get('usd_24h_change', 0)
     price = btc_data.get('usd', 0)
     return vol, change, price
-
-def get_historical_btc(coin_id="bitcoin", days=7):
-    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart?vs_currency=usd&days={days}&interval=daily"
-    response = requests.get(url)
-    data = response.json()
-    
-    prices = data.get('prices', [])
-    df = pd.DataFrame(prices, columns=['Timestamp', 'Price'])
-    df['Date'] = pd.to_datetime(df['Timestamp'], unit='ms')
-    return df
 
 def update(coin, amount):
     if amount <= 0:
