@@ -8,6 +8,26 @@ st.set_page_config(layout="wide")
 if 'portfolio' not in st.session_state:
     st.session_state.portfolio = {"BTC": 0.0, "ETH": 0.0, "SOL": 0.0, "USDC":0.0, "Other": 0.0}
 
+@st.cache_data(ttl=300) 
+def get_data():
+    ids = "bitcoin,tether,ethereum,solana,usdc"
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true"
+    response = requests.get(url)
+    return response.json()
+
+@st.cache_data(ttl=600) 
+def get_historical_btc(coin_id="bitcoin", days=7):
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart?vs_currency=usd&days={days}&interval=daily"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return pd.DataFrame(columns=['Date', 'Price'])
+    
+    data = response.json()
+    prices = data.get('prices', [])
+    df = pd.DataFrame(prices, columns=['Timestamp', 'Price'])
+    df['Date'] = pd.to_datetime(df['Timestamp'], unit='ms')
+    return df
+
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
@@ -54,10 +74,14 @@ def get_historical_btc(coin_id="bitcoin", days=7):
     return df
 
 def update(coin, amount):
-    # Update the specific coin's amount in our session state
+    if amount <= 0:
+        st.warning("Please enter an amount greater than 0")         # error check to make sure user enters amount greater than 0
+        return 
+   
     if coin in st.session_state.portfolio:
         st.session_state.portfolio[coin] += amount
     else:
+        # This handles cases where the ticker isn't in your initial dictionary
         st.session_state.portfolio["Other"] += amount
 
 fng_val, fng_label = get_fear_n_greed()
@@ -119,13 +143,13 @@ with col1:
         yaxis_title=None,
         paper_bgcolor='rgba(0,0,0,0)', 
         plot_bgcolor='rgba(0,0,0,0)',
-        hovermode="x unified" # Shows price clearly when hovering
+        hovermode="x unified" 
     )
     st.plotly_chart(fig, width = 'stretch')
     if 'clicked' not in st.session_state:
         st.session_state.clicked = False
 
-
+# the above handles the button clicks and puts them in session state (how streamlit keeps track of movements)
 
 with col2:
     st.subheader("Allocation")
@@ -149,7 +173,7 @@ with col2:
             plot_bgcolor='rgba(0,0,0,0)',
             margin=dict(t=0, b=0, l=0, r=0)
         )
-        st.plotly_chart(fig_pie, use_container_width=True)
+        st.plotly_chart(fig_pie, width = "stretch")
     else:
         st.info("Please add assets to see the allocation")
 
