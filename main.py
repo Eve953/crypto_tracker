@@ -5,6 +5,9 @@ import requests
 
 st.set_page_config(layout="wide")
 
+if 'portfolio' not in st.session_state:
+    st.session_state.portfolio = {"BTC": 0.0, "ETH": 0.0, "SOL": 0.0, "USDC":0.0, "Other": 0.0}
+
 def local_css(file_name):
     with open(file_name) as f:
         st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
@@ -50,6 +53,13 @@ def get_historical_btc(coin_id="bitcoin", days=7):
     df['Date'] = pd.to_datetime(df['Timestamp'], unit='ms')
     return df
 
+def update(coin, amount):
+    # Update the specific coin's amount in our session state
+    if coin in st.session_state.portfolio:
+        st.session_state.portfolio[coin] += amount
+    else:
+        st.session_state.portfolio["Other"] += amount
+
 fng_val, fng_label = get_fear_n_greed()
 data = get_data()
 
@@ -62,12 +72,15 @@ st.title("Crypto Analysis Dashboard")
 with st.expander("➕ Add New Asset to Portfolio"):
     input_col1, input_col2, input_col3 = st.columns([2, 2, 1])
     with input_col1:
-        coin = st.selectbox("Ticker", ["BTC", "ETH", "USDC", "SOL", "USDT"])
+        coin = st.selectbox("Ticker", ["BTC", "ETH", "SOL", "USDC", "USDT"])
     with input_col2:
         amount = st.number_input("Amount ($)", min_value=0.0)
     with input_col3:
         st.write(" ") 
-        add_btn = st.button("Update Dashboard")
+        # When clicked, this calls our update logic
+        if st.button("Update Dashboard"):
+            update(coin, amount)
+            st.success(f"Added ${amount} to {coin}")
 
 # The Metric Grid
 # horizontal block for divs
@@ -92,7 +105,7 @@ pastel_colors = ['#E6E1F9', '#FFE5D9', '#D8F3DC', '#CAF0F8', '#6D597A']
 col1, col2= st.columns(2)
 
 with col1:
-    st.subheader("BTC Market Trend (7D)")
+    st.subheader("Bitcoin Market Trend")
     
     # Fetch real historical data
     df_trend = get_historical_btc("bitcoin", days=10)
@@ -109,19 +122,34 @@ with col1:
         hovermode="x unified" # Shows price clearly when hovering
     )
     st.plotly_chart(fig, width = 'stretch')
+    if 'clicked' not in st.session_state:
+        st.session_state.clicked = False
+
+
 
 with col2:
     st.subheader("Allocation")
-    fig_pie = px.pie(
-        values=[40, 30, 30], 
-        names=['BTC', 'ETH', 'Other'], 
-        hole=0.7,
-        color_discrete_sequence=pastel_colors # forces the chart to be pastel instead of the bright blue and red default
-    )
-    fig_pie.update_layout(
-        showlegend=True,
-        paper_bgcolor='rgba(0,0,0,0)',
-        plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=0, b=0, l=0, r=0)
-    )
-    st.plotly_chart(fig_pie, width='stretch')
+    
+    # Get values and names directly from session state
+    portfolio_data = st.session_state.portfolio
+    chart_values = list(portfolio_data.values())
+    chart_names = list(portfolio_data.keys())
+
+    # Renders chart if data exists 
+    if sum(chart_values) > 0:
+        fig_pie = px.pie(
+            values=chart_values, 
+            names=chart_names, 
+            hole=0.7,
+            color_discrete_sequence=pastel_colors 
+        )
+        fig_pie.update_layout(
+            showlegend=True,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            margin=dict(t=0, b=0, l=0, r=0)
+        )
+        st.plotly_chart(fig_pie, use_container_width=True)
+    else:
+        st.info("Please add assets to see the allocation")
+
