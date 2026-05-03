@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import requests
 
 st.set_page_config(layout="wide")
 
@@ -10,13 +11,28 @@ def local_css(file_name):
 
 local_css("styles.css")
 
+def get_data():
+    ids = "bitcoin,tether,ethereum,solana, usdc"
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true"
+    
+    response = requests.get(url)
+    return response.json()
+
+def get_fear_n_greed():
+    url = "https://api.alternative.me/fng/"
+    response = requests.get(url)
+    fng = response.json()['data'][0]
+    return fng['value'], fng['value_classification']
+    
+fng_val, fng_label = get_fear_n_greed()
+
 st.title("Crypto Analysis Dashboard")
 
 # The inputs
 with st.expander("➕ Add New Asset to Portfolio"):
     input_col1, input_col2, input_col3 = st.columns([2, 2, 1])
     with input_col1:
-        coin = st.selectbox("Ticker", ["BTC", "ETH", "SOL", "ADA"])
+        coin = st.selectbox("Ticker", ["BTC", "ETH", "USDC", "SOL", "USDT"])
     with input_col2:
         amount = st.number_input("Amount ($)", min_value=0.0)
     with input_col3:
@@ -28,7 +44,7 @@ with st.expander("➕ Add New Asset to Portfolio"):
 m1, m2, m3, m4 = st.columns(4)
 
 with m1:
-    st.metric("Fear & Greed", "42", "Fear")
+    st.metric("Fear & Greed", fng_val, fng_label)
 with m2:
     st.metric("Risk Level", "Low", "Stable")
 with m3:
