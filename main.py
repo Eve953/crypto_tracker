@@ -24,7 +24,28 @@ def get_fear_n_greed():
     fng = response.json()['data'][0]
     return fng['value'], fng['value_classification']
     
+
+
+def extract_sol(data):
+    sol_data = data.get('solana', {})
+    price = sol_data.get('usd', 0)
+    change = sol_data.get('usd_24h_change', 0)
+    vol = sol_data.get('usd_24h_vol', 0)
+    return price, change, vol
+
+def extract_btc(data):
+    btc_data = data.get('bitcoin', {})
+    vol = btc_data.get('usd_24h_vol', 0)
+    change = btc_data.get('usd_24h_change', 0)
+    price = btc_data.get('usd', 0)
+    return vol, change, price
+
+
 fng_val, fng_label = get_fear_n_greed()
+data = get_data()
+
+sol_p, sol_c, sol_v = extract_sol(data)
+btc_v, btc_c, btc_p = extract_btc(data)
 
 st.title("Crypto Analysis Dashboard")
 
@@ -46,11 +67,11 @@ m1, m2, m3, m4 = st.columns(4)
 with m1:
     st.metric("Fear & Greed", fng_val, fng_label)
 with m2:
-    st.metric("Risk Level", "Low", "Stable")
+    st.metric("BTC Price", f"${btc_p:,.0f}", f"{btc_c:.2f}%")
 with m3:
-    st.metric("Top Performer", "SOL", "+12%")
+    st.metric("Top Performer (SOL)", f"${sol_p:,.2f}", f"{sol_c:.2f}%")
 with m4:
-    st.metric("24h Volume", "$2.4B", "-0.5%")
+    st.metric("24h Volume", f"${btc_v/1e9:.1f}B", f"{btc_c:.2f}%")
 
 
 # THE GRID FOR CHARTS
