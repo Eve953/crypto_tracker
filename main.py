@@ -40,6 +40,15 @@ def extract_btc(data):
     price = btc_data.get('usd', 0)
     return vol, change, price
 
+def get_historical_btc(coin_id="bitcoin", days=7):
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart?vs_currency=usd&days={days}&interval=daily"
+    response = requests.get(url)
+    data = response.json()
+    
+    prices = data.get('prices', [])
+    df = pd.DataFrame(prices, columns=['Timestamp', 'Price'])
+    df['Date'] = pd.to_datetime(df['Timestamp'], unit='ms')
+    return df
 
 fng_val, fng_label = get_fear_n_greed()
 data = get_data()
@@ -83,17 +92,23 @@ pastel_colors = ['#E6E1F9', '#FFE5D9', '#D8F3DC', '#CAF0F8', '#6D597A']
 col1, col2= st.columns(2)
 
 with col1:
-    st.subheader("Market Trend")
-    df = pd.DataFrame({'x': range(10), 'y': [5, 4, 6, 7, 6, 8, 9, 7, 8, 10]})
-    fig = px.line(df, x='x', y='y', template="plotly_white")
-    # Using the dark muted purple so we can read it
+    st.subheader("BTC Market Trend (7D)")
+    
+    # Fetch real historical data
+    df_trend = get_historical_btc("bitcoin", days=10)
+    
+    fig = px.line(df_trend, x='Date', y='Price', template="plotly_white")
+    
+    # Styling to match your bento grid
     fig.update_traces(line_color='#6D597A', line_width=3)
     fig.update_layout(
+        xaxis_title=None,
+        yaxis_title=None,
         paper_bgcolor='rgba(0,0,0,0)', 
         plot_bgcolor='rgba(0,0,0,0)',
-        margin=dict(t=20, b=20, l=20, r=20)
+        hovermode="x unified" # Shows price clearly when hovering
     )
-    st.plotly_chart(fig, width='stretch')
+    st.plotly_chart(fig, width = 'stretch')
 
 with col2:
     st.subheader("Allocation")
